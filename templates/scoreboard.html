@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoreboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        .team {
+            margin: 20px 0;
+        }
+        .team h2 {
+            margin: 0;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+        .timer {
+            font-size: 2em;
+            margin-top: 20px;
+        }
+        .timer-widget {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .timer-display {
+            font-size: 3em;
+            background: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .timer-controls button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .timer-controls button:hover {
+            background-color: #0056b3;
+        }
+        .timer-controls .stop-btn {
+            background-color: #dc3545;
+        }
+        .timer-controls .stop-btn:hover {
+            background-color: #c82333;
+        }
+        .timer-controls .pause-btn {
+            background-color: #ffc107;
+        }
+        .timer-controls .pause-btn:hover {
+            background-color: #e0a800;
+        }
+    </style>
+    <script>
+        let timer;
+        let timeLeft;
+        let isPaused = false;
+        let startFlag = false;
+
+        function startTimer() {
+            if (!startFlag) return;
+
+            if (!isPaused) {
+                let inputTime = parseInt(document.getElementById("time_input").value) * 60;
+                timeLeft = sessionStorage.getItem("timeLeft") ? parseInt(sessionStorage.getItem("timeLeft")) : inputTime;
+            }
+
+            isPaused = false;
+            clearInterval(timer);
+            timer = setInterval(function() {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    document.getElementById("timer_display").innerHTML = "Time's up!";
+                    sessionStorage.removeItem("timeLeft");
+                } else {
+                    let minutes = Math.floor(timeLeft / 60);
+                    let seconds = timeLeft % 60;
+                    document.getElementById("timer_display").innerHTML = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    timeLeft--;
+                    sessionStorage.setItem("timeLeft", timeLeft);  // Save timeLeft to sessionStorage
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timer);
+            isPaused = true;
+            sessionStorage.setItem("timeLeft", timeLeft);  // Save timeLeft to sessionStorage
+        }
+
+        function stopTimer() {
+            clearInterval(timer);
+            isPaused = false;
+            timeLeft = 0;
+            document.getElementById("timer_display").innerHTML = "00:00";
+            startFlag = false;
+            sessionStorage.removeItem("timeLeft");  // Remove timeLeft from sessionStorage
+        }
+
+        window.onload = function() {
+            // Check if there's a saved timeLeft in sessionStorage
+            if (sessionStorage.getItem("timeLeft")) {
+                timeLeft = parseInt(sessionStorage.getItem("timeLeft"));
+                if (timeLeft > 0) {
+                    startFlag = true;  // Start the timer if there's saved time left
+                    startTimer();
+                }
+            }
+            document.getElementById("start_timer").addEventListener("click", function() {
+                startFlag = true;
+                startTimer();
+            });
+            document.getElementById("pause_timer").addEventListener("click", pauseTimer);
+            document.getElementById("stop_timer").addEventListener("click", stopTimer);
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="box">
+            <div class="team">
+                <h2>{{ home_team }}</h2>
+                <p>Score: {{ home_score }}</p>
+            </div>
+            <div class="team">
+                <h2>{{ away_team }}</h2>
+                <p>Score: {{ away_score }}</p>
+            </div>
+            <div class="timer-widget">
+                <div class="timer-display" id="timer_display">00:00</div>
+                <div class="form-group">
+                    <label for="time_input">Set Timer (minutes):</label>
+                    <input type="number" id="time_input" name="time_input" min="1" required>
+                </div>
+                <div class="timer-controls">
+                    <button id="start_timer">Start Timer</button>
+                    <button id="pause_timer" class="pause-btn">Pause Timer</button>
+                    <button id="stop_timer" class="stop-btn">Stop Timer</button>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <div class="team">
+                <h2>Update Home Team</h2>
+                <form action="/update_home_team" method="POST">
+                    <div class="form-group">
+                        <label for="home_team">Team Name:</label>
+                        <input type="text" id="home_team" name="home_team" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Update Home Team</button>
+                </form>
+                <form action="/update_home_score" method="POST">
+                    <div class="form-group">
+                        <label for="home_score">Score:</label>
+                        <input type="number" id="home_score" name="home_score" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Update Home Score</button>
+                </form>
+            </div>
+            <div class="team">
+                <h2>Update Away Team</h2>
+                <form action="/update_away_team" method="POST">
+                    <div class="form-group">
+                        <label for="away_team">Team Name:</label>
+                        <input type="text" id="away_team" name="away_team" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Update Away Team</button>
+                </form>
+                <form action="/update_away_score" method="POST">
+                    <div class="form-group">
+                        <label for="away_score">Score:</label>
+                        <input type="number" id="away_score" name="away_score" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Update Away Score</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
